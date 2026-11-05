@@ -23,3 +23,108 @@ bash chunk. R chunks run from the top of the repository.
 -->
 
 Taxonomic classification of the most complete bins with GTDB-Tk. Commands for this step were run in `gtdbtk/`.
+
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Change the directory to gtdbtk to perform the taxonomic classification
+
+```{bash}
+cd gtdbtk
+```
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Read each bin name from bbd_topbins.txt and prints the corresponding FASTA file path from the ../metabat/bins_bbd/ directory.
+
+```{bash}
+while read bin;do echo $bin;done < ../checkm/bbd_topbins.txt
+```
+
+contig_121
+metabat.32
+metabat.2
+metabat.69
+metabat.56
+metabat.42
+metabat.39
+metabat.29
+metabat.58
+metabat.22
+metabat.66
+metabat.59
+metabat.35
+metabat.27
+metabat.45
+metabat.65
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Read each bin name from bbd_topbins.txt and copies its corresponding FASTA file from ../metabat/bins_bbd/ into the genomes directory.
+
+```{bash}
+while read bin;do echo "../metabat/bins_bbd/${bin}.fa";done < ../checkm/bbd_topbins.txt
+```
+
+../metabat/bins_bbd/contig_121.fa
+../metabat/bins_bbd/metabat.32.fa
+../metabat/bins_bbd/metabat.2.fa
+../metabat/bins_bbd/metabat.69.fa
+../metabat/bins_bbd/metabat.56.fa
+../metabat/bins_bbd/metabat.42.fa
+../metabat/bins_bbd/metabat.39.fa
+../metabat/bins_bbd/metabat.29.fa
+../metabat/bins_bbd/metabat.58.fa
+../metabat/bins_bbd/metabat.22.fa
+../metabat/bins_bbd/metabat.66.fa
+../metabat/bins_bbd/metabat.59.fa
+../metabat/bins_bbd/metabat.35.fa
+../metabat/bins_bbd/metabat.27.fa
+../metabat/bins_bbd/metabat.45.fa
+../metabat/bins_bbd/metabat.65.fa
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Reads each bin name from bbd_topbins.txt and copies the corresponding FASTA file (.fa) from ../metabat/bins_bbd/ into the genomes directory.
+
+```{bash}
+while read bin;do cp "../metabat/bins_bbd/${bin}.fa" genomes;done < ../checkm/bbd_topbins.txt 
+```
+#-------------------------------------------------------------------------------------------------------------------------------------#
+ We are listing contets within genomes
+```{bash}
+ls genomes
+```
+
+contig_121.fa  metabat.22.fa  metabat.27.fa  metabat.29.fa  metabat.2.fa  metabat.32.fa  metabat.35.fa  metabat.39.fa  metabat.42.fa  metabat.45.fa  metabat.56.fa  metabat.58.fa  metabat.59.fa  metabat.65.fa  metabat.66.fa  metabat.69.fa
+#-------------------------------------------------------------------------------------------------------------------------------------#
+We are creating a shell file with this code to run it in HPC saving t into the gtdbtk directory.
+```{bash}
+#!/bin/bash
+#SBATCH --time=120
+#SBATCH --cpus-per-task=2 --mem=56gb
+
+echo "Starting gtdbtk in $(pwd) at $(date)"
+
+shopt -s expand_aliases
+alias gtdbtk='apptainer run -B /pvol:/pvol,/pvol/data/mg/gtdbtkdata/release207_v2/:/refdata /pvol/data/sif/gtdbtk.sif'
+
+gtdbtk classify_wf -x fa --cpus 2 --genome_dir genomes --out_dir out --skip_ani_screen
+
+echo "Finished gtdbtk in $(pwd) at $(date)"
+```
+#-------------------------------------------------------------------------------------------------------------------------------------#
+
+We use squeue to check the progress of the job
+
+```{bash}
+squeue
+```
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Lists the detailed information (file permissions, ownership, size and last modification date) of gtdbtk.bac120.summary.tsv in the out directory. 
+
+```{bash}
+ls -l out/gtdbtk.bac120.summary.tsv 
+```
+
+lrwxrwxrwx 1 jd153978 jd153978 34 Nov  5 10:28 out/gtdbtk.bac120.summary.tsv -> classify/gtdbtk.bac120.summary.tsv
+#-------------------------------------------------------------------------------------------------------------------------------------#
+Copies the gtdbtk.bac120.summary.tsv file from the out directory into the current working directory (.).
+
+```{bash}
+cp out/gtdbtk.bac120.summary.tsv .
+```
+
+#-------------------------------------------------------------------------------------------------------------------------------------#
