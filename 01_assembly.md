@@ -1,0 +1,82 @@
+BBD Metagenome: Assembly
+================
+Your Name
+2026-11-05
+
+<!--
+Explain what this step does and why, and copy each command you ran into a
+bash chunk. R chunks run from the top of the repository.
+-->
+
+Assembly of the BBD nanopore reads with Flye. Commands for this step
+were run in `flye/`.
+
+\#—————————————————————————————————————————————-# Change base directory
+to flye and symbolic link bbd_0.1.fastq.gz in metagenome_assembly in the
+data directory
+
+``` bash
+cd flye 
+ln -s /pvol/data/metagenome_assembly/bbd_0.1.fastq.gz
+```
+
+\#—————————————————————————————————————————————-# Create a shell file
+and paste this code code to convert sequencing reads to contigs using
+the metagenomic mode (–meta) through HPC (SLURM JOB)
+
+Shell file contents
+
+``` bash
+#!/bin/bash 
+#SBATCH --time=720 
+#SBATCH --cpus-per-task=12 --mem=20gb
+
+echo "Starting flye bbd in \$(pwd) at \$(date)"
+
+flye --nano-hq bbd_0.1.fastq.gz --threads 12 --out-dir bbd --meta
+
+echo "Finished flye bbd in \$(pwd) at \$(date)"
+```
+
+\#——————————————————————————————————————————————-# Running the command
+below starts the job tlizing the slurm.out file as internmediate file to
+run the shell file
+
+``` bash
+sbatch run_flye_bbd.sh
+```
+
+sbatch: No partition given, and work cannot take this job: it asks for
+12 CPUs per node (work allows 8) and 20.0 GB of memory per node (work
+allows 14.8 GB). Sending it to small or bigmem, whichever has room
+first. Submitted batch job 603
+\#——————————————————————————————————————————————–# Squeue helps us to
+see the progress of the job to monitor
+
+``` bash
+squeue
+```
+
+JOBID PARTITION NAME USER ST TIME NODES NODELIST(REASON) 603 small
+run_flye jd153978 R 23:16 1 rstudio26
+
+\#——————————————————————————————————————————————–#
+
+We use this command to obtain the accurate runtime of the job
+
+``` bash
+sacct -j 603 --format=JobID,State,MaxRSS,Elapsed 
+```
+
+JobID State MaxRSS Elapsed \#———— ———- ———- ———-# 603 COMPLETED 00:52:44
+603.batch COMPLETED 14216152K 00:52:44
+
+\#———————————————————————————————————————————————# We list the contents
+of the file
+
+``` bash
+ls -l bbd/assembly.fasta
+```
+
+-rw-r–r– 1 jd153978 jd153978 67792263 Nov 5 07:54 bbd/assembly.fasta
+\#———————————————————————————————————————————————#

@@ -38,12 +38,12 @@ metagenome_assembly in the data directory
 cd flye 
 ln -s /pvol/data/metagenome_assembly/bbd_0.1.fastq.gz
 ```
+
 #----------------------------------------------------------------------------------------------------------------------------------------#
 Create a shell file and paste this code code to convert sequencing reads
 to contigs using the metagenomic mode (--meta) through HPC (SLURM JOB)
 
 Shell file contents
-
 
 ```{bash}
 #!/bin/bash 
@@ -56,15 +56,19 @@ flye --nano-hq bbd_0.1.fastq.gz --threads 12 --out-dir bbd --meta
 
 echo "Finished flye bbd in \$(pwd) at \$(date)"
 ```
+
 #-------------------------------------------------------------------------------------------------------------------------------------------#
-Running the command below starts the job tlizing the slurm.out file as internmediate file to run the shell file 
+Running the command below starts the job tlizing the slurm.out file as
+internmediate file to run the shell file
 
 ```{bash}
 sbatch run_flye_bbd.sh
 ```
 
-sbatch: No partition given, and work cannot take this job: it asks for 12 CPUs per node (work allows 8) and 20.0 GB of memory per node (work
-allows 14.8 GB). Sending it to small or bigmem, whichever has room first. Submitted batch job 603
+sbatch: No partition given, and work cannot take this job: it asks for
+12 CPUs per node (work allows 8) and 20.0 GB of memory per node (work
+allows 14.8 GB). Sending it to small or bigmem, whichever has room
+first. Submitted batch job 603
 #--------------------------------------------------------------------------------------------------------------------------------------------#
 Squeue helps us to see the progress of the job to monitor
 
@@ -72,9 +76,9 @@ Squeue helps us to see the progress of the job to monitor
 squeue
 ```
 
-JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-               603     small run_flye jd153978  R      23:16      1 rstudio26
-               
+JOBID PARTITION NAME USER ST TIME NODES NODELIST(REASON) 603 small
+run_flye jd153978 R 23:16 1 rstudio26
+
 #--------------------------------------------------------------------------------------------------------------------------------------------#
 
 We use this command to obtain the accurate runtime of the job
@@ -83,16 +87,16 @@ We use this command to obtain the accurate runtime of the job
 sacct -j 603 --format=JobID,State,MaxRSS,Elapsed 
 ```
 
-JobID             State     MaxRSS    Elapsed 
-#------------ ---------- ---------- ----------#
-603           COMPLETED              00:52:44 
-603.batch     COMPLETED  14216152K   00:52:44
+JobID State MaxRSS Elapsed #------------ ---------- ----------
+----------# 603 COMPLETED 00:52:44 603.batch COMPLETED 14216152K
+00:52:44
 
 #---------------------------------------------------------------------------------------------------------------------------------------------#
-We list the contents of the file 
+We list the contents of the file
 
 ```{bash}
 ls -l bbd/assembly.fasta
 ```
--rw-r--r-- 1 jd153978 jd153978 67792263 Nov  5 07:54 bbd/assembly.fasta
+
+-rw-r--r-- 1 jd153978 jd153978 67792263 Nov 5 07:54 bbd/assembly.fasta
 #---------------------------------------------------------------------------------------------------------------------------------------------#
