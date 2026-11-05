@@ -15,6 +15,7 @@ were run in `flye/`.
 to flye and symbolic link bbd_0.1.fastq.gz in metagenome_assembly in the
 data directory
 
+
 ``` bash
 cd flye 
 ln -s /pvol/data/metagenome_assembly/bbd_0.1.fastq.gz
