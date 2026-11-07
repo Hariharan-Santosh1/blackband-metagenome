@@ -17,80 +17,32 @@ knitr::opts_hooks$set(engine = function(options) {
 })
 ```
 
-<!--
-Explain what this step does and why, and copy each command you ran into a
-bash chunk. R chunks run from the top of the repository.
--->
+## Taxanomic Classification Using GTDB-Tk
 
-Taxonomic classification of the most complete bins with GTDB-Tk. Commands for this step were run in `gtdbtk/`.
+### Objective
 
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Change the directory to gtdbtk to perform the taxonomic classification
+In this step, the selected genome bins are classified using a tool called GTDB-Tk. It compares each genome against a reference database of known microbial genomes. Based on these matches, it assigns a taxonomic classification to each bin, which tells us the likely identity of the microbe. The classification can go from broad levels, such as domain and phylum, down to genus and species. Species level assignments are only given where the match is close enough.
+
+### Process
+
+All commands are run inside the gtdbtk directory. First, the bin IDs chosen earlier with CheckM are used to find their matching FASTA files. These files are the selected 16 genome bins from MetaBat 2 output directory. The commands copy them into one folder called genomes/. This puts all the bins in a single place, ready for taxonomic classification with GTD-Tk.
 
 ```{bash}
+# Change directory to gtdbtk
 cd gtdbtk
-```
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Read each bin name from bbd_topbins.txt and prints the corresponding FASTA file path from the ../metabat/bins_bbd/ directory.
 
-```{bash}
-while read bin;do echo $bin;done < ../checkm/bbd_topbins.txt
-```
+# Display selected bin identifiers
+while read bin; do echo $bin; done < ../checkm/bbd_topbins.txt
 
-contig_121
-metabat.32
-metabat.2
-metabat.69
-metabat.56
-metabat.42
-metabat.39
-metabat.29
-metabat.58
-metabat.22
-metabat.66
-metabat.59
-metabat.35
-metabat.27
-metabat.45
-metabat.65
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Read each bin name from bbd_topbins.txt and copies its corresponding FASTA file from ../metabat/bins_bbd/ into the genomes directory.
+# Copy selected genome FASTA files into genomes/
+while read bin; do cp "../metabat/bins_bbd/${bin}.fa" genomes/; done < ../checkm/bbd_topbins.txt
 
-```{bash}
-while read bin;do echo "../metabat/bins_bbd/${bin}.fa";done < ../checkm/bbd_topbins.txt
+# Verify the copied genome files
+ls genomes/
 ```
 
-../metabat/bins_bbd/contig_121.fa
-../metabat/bins_bbd/metabat.32.fa
-../metabat/bins_bbd/metabat.2.fa
-../metabat/bins_bbd/metabat.69.fa
-../metabat/bins_bbd/metabat.56.fa
-../metabat/bins_bbd/metabat.42.fa
-../metabat/bins_bbd/metabat.39.fa
-../metabat/bins_bbd/metabat.29.fa
-../metabat/bins_bbd/metabat.58.fa
-../metabat/bins_bbd/metabat.22.fa
-../metabat/bins_bbd/metabat.66.fa
-../metabat/bins_bbd/metabat.59.fa
-../metabat/bins_bbd/metabat.35.fa
-../metabat/bins_bbd/metabat.27.fa
-../metabat/bins_bbd/metabat.45.fa
-../metabat/bins_bbd/metabat.65.fa
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Reads each bin name from bbd_topbins.txt and copies the corresponding FASTA file (.fa) from ../metabat/bins_bbd/ into the genomes directory.
+A SLURM shell script is created to run GTDB-Tk through the HPC environment using the required reference database and conputational resources. The script runs GTDB-Tk's classify_wf workflow, which compares the selected genomes against the Genome Taxanomy Database (GTDB) reference genomes using conserved marker genes and phylogenetic placement to determine their taxanomic identities. The -xa fa option specifies the FASTA file extension, while -skip_ani_screen option skips the average nucleotide identity screening stage. The classification results are saved in the out/ directory.
 
-```{bash}
-while read bin;do cp "../metabat/bins_bbd/${bin}.fa" genomes;done < ../checkm/bbd_topbins.txt 
-```
-#-------------------------------------------------------------------------------------------------------------------------------------#
- We are listing contets within genomes
-```{bash}
-ls genomes
-```
-
-contig_121.fa  metabat.22.fa  metabat.27.fa  metabat.29.fa  metabat.2.fa  metabat.32.fa  metabat.35.fa  metabat.39.fa  metabat.42.fa  metabat.45.fa  metabat.56.fa  metabat.58.fa  metabat.59.fa  metabat.65.fa  metabat.66.fa  metabat.69.fa
-#-------------------------------------------------------------------------------------------------------------------------------------#
-We are creating a shell file with this code to run it in HPC saving t into the gtdbtk directory.
 ```{bash}
 #!/bin/bash
 #SBATCH --time=120
@@ -105,26 +57,25 @@ gtdbtk classify_wf -x fa --cpus 2 --genome_dir genomes --out_dir out --skip_ani_
 
 echo "Finished gtdbtk in $(pwd) at $(date)"
 ```
-#-------------------------------------------------------------------------------------------------------------------------------------#
 
-We use squeue to check the progress of the job
+The job is submitted and monitored using these commands
 
 ```{bash}
+sbatch run_gtdbtk.sh
 squeue
 ```
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Lists the detailed information (file permissions, ownership, size and last modification date) of gtdbtk.bac120.summary.tsv in the out directory. 
+
+Once the classification is complete, the summary file is located and copied into the main working directory for easier access.
 
 ```{bash}
-ls -l out/gtdbtk.bac120.summary.tsv 
-```
+# Check the classification summary file
+ls -l out/gtdbtk.bac120.summary.tsv
 
-lrwxrwxrwx 1 jd153978 jd153978 34 Nov  5 10:28 out/gtdbtk.bac120.summary.tsv -> classify/gtdbtk.bac120.summary.tsv
-#-------------------------------------------------------------------------------------------------------------------------------------#
-Copies the gtdbtk.bac120.summary.tsv file from the out directory into the current working directory (.).
-
-```{bash}
+# Copy the summary into the current directory
 cp out/gtdbtk.bac120.summary.tsv .
+
 ```
 
-#-------------------------------------------------------------------------------------------------------------------------------------#
+### Result
+
+The main output file is gtdbtk.bac120.summary.tsv. , as it lists the taxonomic classification for each genome bin. Each classification inlcudes the domain, phylum, class, order, family, genus and species where these could be assigned. This tells us the microbial groups are represented by the selected bins. It also gives a starting point for the later genomic and functional analysis.
