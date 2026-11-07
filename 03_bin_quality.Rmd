@@ -20,7 +20,7 @@ knitr::opts_hooks$set(engine = function(options) {
 })
 ```
 
-## kk
+## Estimating Genome Bin quality Utilizing CheckM
 
 ### Objective
 
