@@ -24,9 +24,14 @@ knitr::opts_hooks$set(engine = function(options) {
 
 ### Objective
 
-To assemble raw Oxford Nanopore sequencing reads into longer contiguous
-DNA sequences (contigs) using Flye .The resulting contigs provide the
-foundation for subsequent taxonomic and functional analyses.
+The goal of this step is to join raw sequencing reads into longer pieces
+of DNA, using a tool called Flye. The reads come from Oxford Nanopore
+sequencing, which produces long but fairly error prone reads. Flye finds
+reads that overlap and stiches them togather into contigs. A contig is a
+longer, continous stretch of DNA. Longer contigs are easier to analyse
+than many short and scattered reads. These contigs are the starting
+point for later steps, inlcuding identifying whihc microbes are present
+and studying what their genes do.
 
 ### Process
 

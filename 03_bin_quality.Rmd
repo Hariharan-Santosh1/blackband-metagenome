@@ -5,6 +5,9 @@ date: "`r Sys.Date()`"
 output:
   github_document:
     html_preview: false
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -17,37 +20,53 @@ knitr::opts_hooks$set(engine = function(options) {
 })
 ```
 
-<!--
-Explain what this step does and why, and copy each command you ran into a
-bash chunk. R chunks run from the top of the repository.
--->
+## kk
 
-Completeness and contamination of each bin, estimated with CheckM, and selection of the most complete bins for further analysis. Commands for this step were run in `checkm/`.
-#-------------------------------------------------------------------------------------------------------------------------#
-Change directory to checkm to check the bin quality 
+### Objective
+
+Here the quality of the genome bins are checked using CheckM. CheckM
+particularly looks for conserved marker genes, which are genes that
+almost every microbe of a given group is expected carry. It uses these
+genes to estimate two things: completeness and contamination.
+
+Completeness is how much of a genome is present within the bin. If most
+of the expected marker genes are seen, the bin is fairly complete.
+Contamination is how much DNA in the bin likely came from other
+organisms. If the same marker gene shows up more than once when it
+should appear only once, the bin may be mixed with different microbes.
+
+These scores help pick out the most complete and reliable bins, so that
+they can be used for later taxonomic and genomic analysis.
+
+### Process
+
+All command were run in the checkm directory. First we assembled contigs
+and examine them to identify their lenghts and the largest contig
+(contig_121) is extracted seperately. The Metabat 2 genome bins are
+copied into the working directory to assess quality.
+
 ```{bash}
+# Directory change to checkm
 cd checkm
-```
-#-------------------------------------------------------------------------------------------------------------------------#
-Read the Flye assembly FASTA file, extracts the length and name of each contig using bioawk, and sorts the contigs by length in ascending order.
 
-```{bash}
+# Examine contig lengths
 cat ../flye/bbd/assembly.fasta | bioawk -c fastx '{print length($seq),$name}' | sort -n
-```
-#-------------------------------------------------------------------------------------------------------------------------#
-Extracts the DNA sequence of contig_121 from the assembly FASTA file using samtools faidx and saves it as a separate FASTA file in the bins_bbd directory. (We are choosing the biggest contig)
 
-```{bash}
+# Extract the largest contig
 samtools faidx ../flye/bbd/assembly.fasta contig_121 > ../metabat/bins_bbd/contig_121.fa
-```
-#-------------------------------------------------------------------------------------------------------------------------#
-Copies all .fa FASTA files from ../metabat/bins_bbd/ into the current directory's bins_bbd/ folder.
 
-```{bash}
+# Copy genome bins into the working directory
 cp ../metabat/bins_bbd/*.fa bins_bbd/
 ```
-#-------------------------------------------------------------------------------------------------------------------------#
-Create a shell script with the name 'run_checkm_bbd.sh' and type this code 
+
+A slurm script (run_checkm_bbd.sh) was written to run CheckM on the HPC
+using the required computing resources. The script runs CheckM's
+lineage_wf workflow, which checks each bin for conserved marker genes
+expected for it's microbial lineage. Completness is estimated from how
+many of the expected marker genes are found, while contamination is
+estimated from marker genes that appear more than once suggesting that
+DNA from multiple organisms is mixed in the same bin.
+
 ```{bash}
 #!/bin/bash
 #SBATCH --time=60
@@ -62,94 +81,47 @@ checkm lineage_wf bins_bbd out -t 6 -x fa -f checkm_results_bbd.txt
 
 echo "Finished checkm in $(pwd) at $(date)"
 ```
-#---------------------------------------------------------------------------------------------------------------------#
-Run this script using sbatch command to access the HPC using slurm as an intermediate 
+
+The job is submitted and monitored using the below code
 
 ```{bash}
 sbatch run_checkm_bbd.sh
-```
-sbatch: No partition given, and work cannot take this job: it asks for 40.0 GB of memory per node (work allows 14.8 GB). Sending it to bigmem.
-Submitted batch job 604
-#---------------------------------------------------------------------------------------------------------------------#
-Use squeue to check the progress of the job 
-```{bash}
 squeue
 ```
 
- JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-               604    bigmem run_chec jd153978  R       5:22      1 bigmem2
-               
-#---------------------------------------------------------------------------------------------------------------------#
-Read the first 10 lines of checkm_result_bbd.txt
+Once CheckM completes, the results are examined to identify bins with
+completeness values greater than 15%. The selected bin identifiers are
+extracted and saved into bbd_topbins.txt for subsequent analysis. These
+commands allow the completeness and contamination estimates to be
+examined and generate a seperate list of selected bins on the
+completeness threshold.
 
 ```{bash}
-head checkm_results_bbd.txt 
-```
+# Examine CheckM results
+head checkm_results_bbd.txt
 
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  Bin Id                Marker lineage            # genomes   # markers   # marker sets    0     1    2   3   4   5+   Completeness   Contamination   Strain heterogeneity  
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  contig_121      o__Cytophagales (UID2936)           47         454           336         9    438   7   0   0   0       97.62            1.64              14.29          
-  metabat.32      p__Cyanobacteria (UID2189)          82         579           450         11   565   3   0   0   0       97.56            0.67               0.00          
-  metabat.2          k__Bacteria (UID203)            5449        103            58         80    23   0   0   0   0       36.21            0.00               0.00          
-  metabat.69        k__Bacteria (UID3060)            138         338           246        230   108   0   0   0   0       30.28            0.00               0.00          
-  metabat.56         k__Bacteria (UID203)            5449        104            58         85    19   0   0   0   0       29.31            0.00               0.00          
-  metabat.42         k__Bacteria (UID203)            5449        103            57         86    17   0   0   0   0       26.32            0.00               0.00          
-  metabat.39   c__Deltaproteobacteria (UID3216)       83         247           155        175    71   1   0   0   0       24.95            0.13               0.00   
-
-#---------------------------------------------------------------------------------------------------------------------#
-Read the checkm_results_bbd.txt file and uses awk to display only the rows where the value in column 13 is greater than 15.
-
-```{bash}
+# Filter bins with completeness greater than 15%
 cat checkm_results_bbd.txt | awk '$13>15'
-```
- contig_121      o__Cytophagales (UID2936)           47         454           336         9    438   7   0   0   0       97.62            1.64              14.29          
-  metabat.32      p__Cyanobacteria (UID2189)          82         579           450         11   565   3   0   0   0       97.56            0.67               0.00          
-  metabat.2          k__Bacteria (UID203)            5449        103            58         80    23   0   0   0   0       36.21            0.00               0.00          
-  metabat.69        k__Bacteria (UID3060)            138         338           246        230   108   0   0   0   0       30.28            0.00               0.00          
-  metabat.56         k__Bacteria (UID203)            5449        104            58         85    19   0   0   0   0       29.31            0.00               0.00          
-  metabat.42         k__Bacteria (UID203)            5449        103            57         86    17   0   0   0   0       26.32            0.00               0.00          
-  metabat.39   c__Deltaproteobacteria (UID3216)       83         247           155        175    71   1   0   0   0       24.95            0.13               0.00          
-  metabat.29      o__Clostridiales (UID1212)         172         263           149        198    65   0   0   0   0       22.60            0.00               0.00          
-  metabat.58         k__Bacteria (UID203)            5449        104            58         90    14   0   0   0   0       22.41            0.00               0.00          
-  metabat.22         k__Bacteria (UID203)            5449        104            58         88    16   0   0   0   0       21.55            0.00               0.00          
-  metabat.66         k__Bacteria (UID203)            5449        102            56         87    15   0   0   0   0       21.43            0.00               0.00          
-  metabat.59         k__Bacteria (UID203)            5449        104            58         90    14   0   0   0   0       20.69            0.00               0.00          
-  metabat.35     p__Proteobacteria (UID3061)         115         395           260        291   104   0   0   0   0       20.62            0.00               0.00          
-  metabat.27   c__Deltaproteobacteria (UID3218)       61         284           169        230    54   0   0   0   0       19.07            0.00               0.00          
-  metabat.45   c__Deltaproteobacteria (UID3216)       83         247           155        188    59   0   0   0   0       18.86            0.00               0.00          
-  metabat.65         k__Bacteria (UID203)            5449        104            58         94    10   0   0   0   0       15.52            0.00               0.00  
-  
-#---------------------------------------------------------------------------------------------------------------------#
-Read checkm_results_bbd.txt and uses awk to print only the values in column 1 for rows where column 13 is greater than 15.
 
-```{bash}
-cat checkm_results_bbd.txt | awk '$13>15{print $1}'
+# Extract selected bin identifiers
+cat checkm_results_bbd.txt | awk '$13>15{print $1}' > bbd_topbins.txt
 ```
 
-contig_121
-metabat.32
-metabat.2
-metabat.69
-metabat.56
-metabat.42
-metabat.39
-metabat.29
-metabat.58
-metabat.22
-metabat.66
-metabat.59
-metabat.35
-metabat.27
-metabat.45
-metabat.65
+### Result
 
-#---------------------------------------------------------------------------------------------------------------------#
-Reads checkm_results_bbd.txt, extracts column 1 for rows where column 13 is greater than 15, and saves the filtered results into a new file called bbd_topbins.txt.
+CheckM has successfully assessed the genome bins and generated
+completeness and contamination estimates , applying a completeness of
+greater than 15% resulted in 16 bins,including the seperately extracted
+contig_121.
 
-```{bash}
-cat checkm_results_bbd.txt | awk '$13>15{print $1}' > bbd_topbins.txt 
-```
-#---------------------------------------------------------------------------------------------------------------------#
+| Bin ID     | Completeness | Contamination |
+|------------|--------------|---------------|
+| contig_121 | 97.62%       | 1.64%         |
+| metabat.32 | 97.56%       | 0.67%         |
+| metabat.2  | 36.21%       | 0.00%         |
+| metabat.69 | 30.28%       | 0.00%         |
+| metabat.56 | 29.31%       | 0.00%         |
 
-
+These are some of the bins that represent the genomes with the highest
+completeness and lowest contamination, making them suitable candidates
+for further analysis.
