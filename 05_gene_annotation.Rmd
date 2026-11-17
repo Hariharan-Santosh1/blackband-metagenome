@@ -1,6 +1,6 @@
 ---
 title: "BBD Metagenome: Gene Annotation"
-author: "Your Name"
+author: "Hariharan Santosh"
 date: "`r Sys.Date()`"
 output:
   github_document:
@@ -15,13 +15,6 @@ knitr::opts_hooks$set(engine = function(options) {
   if (options$engine == "bash") options$eval <- FALSE
   options
 })
-```
-
-```{=html}
-<!--
-Explain what this step does and why, and copy each command you ran into a
-bash chunk. R chunks run from the top of the repository.
--->
 ```
 
 ## Gene Identification and Functional Annotation using Prokka

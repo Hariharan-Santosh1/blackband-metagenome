@@ -1,0 +1,110 @@
+BBD Metagenome: Bin Quality
+================
+Your Name
+2026-11-17
+
+## Estimating Genome Bin quality Utilizing CheckM
+
+### Objective
+
+Here the quality of the genome bins are checked using CheckM. CheckM
+particularly looks for conserved marker genes, which are genes that
+almost every microbe of a given group is expected carry. It uses these
+genes to estimate two things: completeness and contamination.
+
+Completeness is how much of a genome is present within the bin. If most
+of the expected marker genes are seen, the bin is fairly complete.
+Contamination is how much DNA in the bin likely came from other
+organisms. If the same marker gene shows up more than once when it
+should appear only once, the bin may be mixed with different microbes.
+
+These scores help pick out the most complete and reliable bins, so that
+they can be used for later taxonomic and genomic analysis.
+
+### Process
+
+All command were run in the checkm directory. First we assembled contigs
+and examine them to identify their lenghts and the largest contig
+(contig_121) is extracted seperately. The Metabat 2 genome bins are
+copied into the working directory to assess quality.
+
+``` bash
+# Directory change to checkm
+cd checkm
+
+# Examine contig lengths
+cat ../flye/bbd/assembly.fasta | bioawk -c fastx '{print length($seq),$name}' | sort -n
+
+# Extract the largest contig
+samtools faidx ../flye/bbd/assembly.fasta contig_121 > ../metabat/bins_bbd/contig_121.fa
+
+# Copy genome bins into the working directory
+cp ../metabat/bins_bbd/*.fa bins_bbd/
+```
+
+A slurm script (run_checkm_bbd.sh) was written to run CheckM on the HPC
+using the required computing resources. The script runs CheckM’s
+lineage_wf workflow, which checks each bin for conserved marker genes
+expected for it’s microbial lineage. Completness is estimated from how
+many of the expected marker genes are found, while contamination is
+estimated from marker genes that appear more than once suggesting that
+DNA from multiple organisms is mixed in the same bin.
+
+``` bash
+#!/bin/bash
+#SBATCH --time=60
+#SBATCH --cpus-per-task=6 --mem=40gb
+
+echo "Starting checkm in $(pwd) at $(date)"
+
+shopt -s expand_aliases
+alias checkm='apptainer run -B /pvol/:/pvol /pvol/data/sif/checkm.sif checkm'
+
+checkm lineage_wf bins_bbd out -t 6 -x fa -f checkm_results_bbd.txt
+
+echo "Finished checkm in $(pwd) at $(date)"
+```
+
+The job is submitted and monitored using the below code
+
+``` bash
+sbatch run_checkm_bbd.sh
+squeue
+```
+
+Once CheckM completes, the results are examined to identify bins with
+completeness values greater than 15%. The selected bin identifiers are
+extracted and saved into bbd_topbins.txt for subsequent analysis. These
+commands allow the completeness and contamination estimates to be
+examined and generate a seperate list of selected bins on the
+completeness threshold.
+
+``` bash
+# Examine CheckM results
+head checkm_results_bbd.txt
+
+# Filter bins with completeness greater than 15%
+cat checkm_results_bbd.txt | awk '$13>15'
+
+# Extract selected bin identifiers
+cat checkm_results_bbd.txt | awk '$13>15{print $1}' > bbd_topbins.txt
+```
+
+### Result
+
+CheckM has successfully assessed the genome bins and generated
+completeness and contamination estimates , applying a completeness of
+greater than 15% resulted in 16 bins,including the seperately extracted
+contig_121.
+
+| Bin ID     | Completeness | Contamination |
+|------------|--------------|---------------|
+| contig_121 | 97.62%       | 1.64%         |
+| metabat.32 | 97.56%       | 0.67%         |
+| metabat.2  | 36.21%       | 0.00%         |
+| metabat.69 | 30.28%       | 0.00%         |
+| metabat.56 | 29.31%       | 0.00%         |
+
+These are some of the bins that represent the genomes with the highest
+completeness and lowest contamination, making them suitable candidates
+for further analysis.

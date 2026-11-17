@@ -1,31 +1,36 @@
 BBD Metagenome: Assembly
 ================
 Your Name
-2026-11-05
+2026-11-17
 
-<!--
-Explain what this step does and why, and copy each command you ran into a
-bash chunk. R chunks run from the top of the repository.
--->
+## Metagenomic Assembly through Flye
 
-Assembly of the BBD nanopore reads with Flye. Commands for this step
-were run in `flye/`.
+### Objective
 
-\#—————————————————————————————————————————————-# Change base directory
-to flye and symbolic link bbd_0.1.fastq.gz in metagenome_assembly in the
-data directory
+The goal of this step is to join raw sequencing reads into longer pieces
+of DNA, using a tool called Flye. The reads come from Oxford Nanopore
+sequencing, which produces long but fairly error prone reads. Flye finds
+reads that overlap and stiches them togather into contigs. A contig is a
+longer, continous stretch of DNA. Longer contigs are easier to analyse
+than many short and scattered reads. These contigs are the starting
+point for later steps, inlcuding identifying whihc microbes are present
+and studying what their genes do.
 
+### Process
+
+All commands were executed within the flye/ working directory. A
+symbolic link was created to access the input sequencing file
+(bbd_0.1.fastq.gz) without duplicating the original dataset.
 
 ``` bash
 cd flye 
 ln -s /pvol/data/metagenome_assembly/bbd_0.1.fastq.gz
 ```
 
-\#—————————————————————————————————————————————-# Create a shell file
-and paste this code code to convert sequencing reads to contigs using
-the metagenomic mode (–meta) through HPC (SLURM JOB)
-
-Shell file contents
+A SLURM shell script (run_flye_bbd.sh) was created where the shell
+script submits a Flye assembly job to the HPC system through SLURM,
+allocating 12 CPU threads, 20 GB of memory and a maximum runtime of 720
+minutes
 
 ``` bash
 #!/bin/bash 
@@ -39,45 +44,33 @@ flye --nano-hq bbd_0.1.fastq.gz --threads 12 --out-dir bbd --meta
 echo "Finished flye bbd in \$(pwd) at \$(date)"
 ```
 
-\#——————————————————————————————————————————————-# Running the command
-below starts the job tlizing the slurm.out file as internmediate file to
-run the shell file
+It uses Flye’s high quality nanaopore mode to process the input
+sequencing reads (bbd_0.1.fastq.gz) and assemble them into contigious
+DNA sequences (contigs). The meta option enables metagenomic assembly as
+it allows reads originating from multiple organisms to be assembled.
+
+The SLURM job was run and monitored using
 
 ``` bash
 sbatch run_flye_bbd.sh
-```
-
-sbatch: No partition given, and work cannot take this job: it asks for
-12 CPUs per node (work allows 8) and 20.0 GB of memory per node (work
-allows 14.8 GB). Sending it to small or bigmem, whichever has room
-first. Submitted batch job 603
-\#——————————————————————————————————————————————–# Squeue helps us to
-see the progress of the job to monitor
-
-``` bash
 squeue
-```
-
-JOBID PARTITION NAME USER ST TIME NODES NODELIST(REASON) 603 small
-run_flye jd153978 R 23:16 1 rstudio26
-
-\#——————————————————————————————————————————————–#
-
-We use this command to obtain the accurate runtime of the job
-
-``` bash
 sacct -j 603 --format=JobID,State,MaxRSS,Elapsed 
 ```
 
-JobID State MaxRSS Elapsed \#———— ———- ———- ———-# 603 COMPLETED 00:52:44
-603.batch COMPLETED 14216152K 00:52:44
+### Results
 
-\#———————————————————————————————————————————————# We list the contents
-of the file
+All the resulting assembly files are saved in the bbd folder as
+assembly.fasta
+
+| Output        | Result               |
+|---------------|----------------------|
+| Assembly file | `bbd/assembly.fasta` |
+| File size     | 67.79 MB             |
+| Job status    | COMPLETED            |
+| Runtime       | 52 min 44 sec        |
+
+We verify the Flye assembly’s presence through
 
 ``` bash
 ls -l bbd/assembly.fasta
 ```
-
--rw-r–r– 1 jd153978 jd153978 67792263 Nov 5 07:54 bbd/assembly.fasta
-\#———————————————————————————————————————————————#

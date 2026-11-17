@@ -1,0 +1,63 @@
+BBD Metagenome: Gene Annotation
+================
+Hariharan Santosh
+2026-11-17
+
+## Gene Identification and Functional Annotation using Prokka
+
+### Objective
+
+The goal of this step is to annotate the selected genome using a tool
+called Prokka. Annotation basically means finding the genes in a genome
+and predicting what they do. Prokka identifies protein coding genes, RNA
+genes and other genomic features in each bin. This provides an overvie
+of the genetic capabilities of the microorganisms by showing they role
+within the community.
+
+### Process
+
+All the commands are run within the prokka directory where we lsit the
+slected bins from the CheckM analysis.
+
+``` bash
+cd prokka 
+cat ../checkm/bbd_topbins.txt
+```
+
+This command assigns the name metabat.5 to the genome bin and runs
+Prokka to perform genome annotation on the corresponding FASTA file
+(metabat.5.fa). It uses 2 CPU cores, saves all annotation results in a
+directory named metabat.5, and uses the same name as the prefix for the
+output files.
+
+``` bash
+bin=metabat.5
+prokka --cpus 2 --outdir $bin --prefix $bin  ../metabat/bins_bbd/${bin}.fa
+```
+
+The job is run and monitored through the commands below.
+
+``` bash
+sbatch run_prokka.sh
+squeue
+```
+
+### Result
+
+Prokka generates several output files for each annotated genome,
+containing information about the identified genes and their predicted
+functions.
+
+| File   | Description                                   |
+|--------|-----------------------------------------------|
+| `.faa` | Predicted protein sequences                   |
+| `.ffn` | Nucleotide sequences of identified genes      |
+| `.fna` | Genome nucleotide sequences                   |
+| `.gff` | Annotated genomic features and gene locations |
+| `.gbk` | GenBank file containing genome annotations    |
+| `.tsv` | Tab-separated gene annotation table           |
+| `.txt` | Summary of the annotation results             |
+
+The resulting annotations provides the information about the genes and
+potential functions enocded within the selected microbial genomes, which
+can be used for subsequent functional analaysis.

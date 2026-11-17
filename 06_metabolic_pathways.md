@@ -1,0 +1,176 @@
+BBD Metagenome: Metabolic Pathways
+================
+Hariharan Santosh
+2026-11-17
+
+<!--
+Explain what this step does and why, and copy each command you ran into a
+bash chunk. R chunks run from the top of the repository.
+-->
+
+## Metabolic Pathway Prediction through MinPath
+
+### Objective
+
+In this step, the genes found by Prokka are used to predict the
+metabolic pathways through the tool MinPath. A metabolic pathway is a
+series of chemical reactions that a microbe uses to make or break a
+molecule. MinPath looks at the enzymes fucntions linked to the annotated
+genes in each genome and then works out which pathay is most likely
+present based on those enzymes. This allows us to understand what the
+microbes may be doing and what they can breakdown or produce.
+
+### Methodology
+
+All commands are run within the minpath directory. Initially we examine
+the Prokka annotated files (tsv file) to identify the genes with
+assigned Enzyme Commission (EC) numbers. These numbers represent the
+enzymatic functions associated with the identified genes and MinPath
+infers the metabolic pathway.
+
+``` bash
+cd minpath
+
+# Examine the Prokka annotation file
+head ../prokka/metabat.5/metabat.5.tsv
+
+# Extract genes with assigned EC numbers
+cat ../prokka/metabat.5/metabat.5.tsv | awk -F '\t' '$5{OFS="\t";print $1,$5}' | grep -v '^locus' > metabat.5.ec
+```
+
+The resulting file metabat.5.ec contains the gene identifiers and their
+corresponding EC numbers, providing the input needed for prediction of
+metabolic pathway.
+
+The Ec numbers are extracted from the Prokka annotations and are used as
+the input for MinPath. The pathway predictions are then examined using
+the generated report files.
+
+``` bash
+# Run MinPath for metabat.5
+minpath -ec metabat.5.ec -report metabat.5.ec.report -details metabat.5.ec.details
+
+# Examine the pathway prediction report
+head metabat.5.ec.report
+
+# Check the Prokka job output
+tail ../prokka/slurm-XXX.out
+```
+
+To avoid processing individually , we use a while loop to extract the EC
+Numbers from all selected genome annotation files.
+
+``` bash
+while read bin;do 
+  cat ../prokka/$bin/${bin}.tsv | awk -F '\t' '$5{printf("%s\t%s\n", $1,$5)}' | grep -v '^locus' > ${bin}.ec 
+done < ../checkm/bbd_topbins.txt
+```
+
+For selected genomes, a while loop was utilized with the same MinPath
+process.
+
+``` bash
+while read bin;do 
+  minpath -ec ${bin}.ec -report ${bin}.ec.report -details ${bin}.ec.details
+done < ../checkm/bbd_topbins.txt
+```
+
+### Result and Interpretation
+
+#### Metabolic pathway prediction
+
+The MinPath report are searched for PWY-101 which represents the
+photosynthesis light reactions.
+
+``` bash
+grep 'PWY-101' *.ec.report
+```
+
+|            | Initial prediction (Naive) | MinPath prediction |
+|------------|---------------------------:|-------------------:|
+| contig_121 |                          1 |                  0 |
+| metabat.29 |                          1 |                  1 |
+| metabat.32 |                          1 |                  1 |
+| metabat.5  |                          1 |                  0 |
+| metabat.66 |                          1 |                  0 |
+
+A value of 1 indicates that the pathway is predicted while 0 indicates
+that is not retained by MinPath. As seen metabat.29 and metabat.32 are
+predicted with photosynthetic light reactions.
+
+#### Taxanomic classification
+
+The GTDB-Tk summary file is searched to identify the taxnomic
+classification of metabat.26 .
+
+``` bash
+grep 'metabat.26' ../gtdbtk/gtdbtk.bac120.summary.tsv
+```
+
+|         | Classification              |
+|---------|-----------------------------|
+| Domain  | Bacteria                    |
+| Phylum  | Cyanobacteria               |
+| Class   | Cyanobacteriia              |
+| Order   | Cyanobacteriales            |
+| Family  | Desertifilaceae             |
+| Genus   | *Roseofilum*                |
+| Species | *Roseofilum reptotaenium_A* |
+
+Classification like this allows us to understand metabolic capabilites
+and contribution within the microbial community.
+
+### Questions
+
+### 4.1
+
+#### How many bins contain at least one gene from this pathway?
+
+5 bins contain atleast one enzyme family associated with the pathway
+
+#### Which bin has all of the genes (complete pathway)?
+
+metabat.32 contains all 4 enzyme families (fam0 =4, fam-found=4),
+indicating the presence of all enzyme family based on the report.
+
+#### For which bins does MinPath keep the pathway (minpath 1)?
+
+The bins are:
+
+- metabat.29
+
+- metabat.32
+
+### 4.2
+
+#### How many bins contain the pathway PWY-5360?
+
+One bin was found which is metabat.69
+
+#### What order (in a taxonomic sense) do these bins belong to? Are they in the same family?
+
+| Taxonomic level | Classification    |
+|-----------------|-------------------|
+| Domain          | Bacteria          |
+| Phylum          | Campylobacterota  |
+| Class           | Campylobacteria   |
+| Order           | Campylobacterales |
+| Family          | Arcobacteraceae   |
+| Genus           | Halarcobacter     |
+| Species         | Not assigned      |
+
+#### How strong is the evidence that these bins really have this pathway? Look at the fam-found and minpath columns.
+
+| Parameter                              | Result     |
+|----------------------------------------|------------|
+| Bin                                    | metabat.69 |
+| Total enzyme families (`fam0`)         | 3          |
+| Enzyme families detected (`fam-found`) | 1          |
+| MinPath                                | 0          |
+
+MinPath’s evidence that metabat.69 has the superpathway of tetrathionate
+reduction (PWY-5360) is weak. The first, simple prediction (naive = 1)
+suggests the pathway might be there. But only 1 of the 3 expected enzyme
+families was found (fam-found = 1, fam0 = 3). MinPath also did not keep
+the pathway (minpath = 0). So there is not enough evidence to say that
+metabat.69 has the complete pathway.

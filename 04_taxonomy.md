@@ -1,0 +1,91 @@
+BBD Metagenome: Taxonomy
+================
+Hariharan Santosh
+2026-11-17
+
+## Taxanomic Classification Using GTDB-Tk
+
+### Objective
+
+In this step, the selected genome bins are classified using a tool
+called GTDB-Tk. It compares each genome against a reference database of
+known microbial genomes. Based on these matches, it assigns a taxonomic
+classification to each bin, which tells us the likely identity of the
+microbe. The classification can go from broad levels, such as domain and
+phylum, down to genus and species. Species level assignments are only
+given where the match is close enough.
+
+### Process
+
+All commands are run inside the gtdbtk directory. First, the bin IDs
+chosen earlier with CheckM are used to find their matching FASTA files.
+These files are the selected 16 genome bins from MetaBat 2 output
+directory. The commands copy them into one folder called genomes/. This
+puts all the bins in a single place, ready for taxonomic classification
+with GTD-Tk.
+
+``` bash
+# Change directory to gtdbtk
+cd gtdbtk
+
+# Display selected bin identifiers
+while read bin; do echo $bin; done < ../checkm/bbd_topbins.txt
+
+# Copy selected genome FASTA files into genomes/
+while read bin; do cp "../metabat/bins_bbd/${bin}.fa" genomes/; done < ../checkm/bbd_topbins.txt
+
+# Verify the copied genome files
+ls genomes/
+```
+
+A SLURM shell script is created to run GTDB-Tk through the HPC
+environment using the required reference database and conputational
+resources. The script runs GTDB-Tk’s classify_wf workflow, which
+compares the selected genomes against the Genome Taxanomy Database
+(GTDB) reference genomes using conserved marker genes and phylogenetic
+placement to determine their taxanomic identities. The -xa fa option
+specifies the FASTA file extension, while -skip_ani_screen option skips
+the average nucleotide identity screening stage. The classification
+results are saved in the out/ directory.
+
+``` bash
+#!/bin/bash
+#SBATCH --time=120
+#SBATCH --cpus-per-task=2 --mem=56gb
+
+echo "Starting gtdbtk in $(pwd) at $(date)"
+
+shopt -s expand_aliases
+alias gtdbtk='apptainer run -B /pvol:/pvol,/pvol/data/mg/gtdbtkdata/release207_v2/:/refdata /pvol/data/sif/gtdbtk.sif'
+
+gtdbtk classify_wf -x fa --cpus 2 --genome_dir genomes --out_dir out --skip_ani_screen
+
+echo "Finished gtdbtk in $(pwd) at $(date)"
+```
+
+The job is submitted and monitored using these commands
+
+``` bash
+sbatch run_gtdbtk.sh
+squeue
+```
+
+Once the classification is complete, the summary file is located and
+copied into the main working directory for easier access.
+
+``` bash
+# Check the classification summary file
+ls -l out/gtdbtk.bac120.summary.tsv
+
+# Copy the summary into the current directory
+cp out/gtdbtk.bac120.summary.tsv .
+```
+
+### Result
+
+The main output file is gtdbtk.bac120.summary.tsv. , as it lists the
+taxonomic classification for each genome bin. Each classification
+inlcudes the domain, phylum, class, order, family, genus and species
+where these could be assigned. This tells us the microbial groups are
+represented by the selected bins. It also gives a starting point for the
+later genomic and functional analysis.

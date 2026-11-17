@@ -1,6 +1,6 @@
 ---
 title: "BBD Metagenome: Binning"
-author: "Your Name"
+author: "Hariharan Santosh"
 date: "`r Sys.Date()`"
 output:
   github_document:
@@ -17,12 +17,6 @@ knitr::opts_hooks$set(engine = function(options) {
 })
 ```
 
-```{=html}
-<!--
-Explain what this step does and why, and copy each command you ran into a
-bash chunk. R chunks run from the top of the repository.
--->
-```
 
 ## Binning Assembled Contigs Using MetaBat 2
 
